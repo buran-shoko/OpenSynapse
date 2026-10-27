@@ -120,7 +120,7 @@ public sealed partial class MainViewModel
                     {
                         if (SelectedOpenRazerDevice is { } removedDevice)
                         {
-                            await removedDevice.DisposeAsync().ConfigureAwait(false);
+                            await removedDevice.DisposeAsync();
                         }
                         SelectedOpenRazerDevice = null;
                     }

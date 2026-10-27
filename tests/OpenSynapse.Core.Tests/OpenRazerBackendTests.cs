@@ -120,6 +120,52 @@ public sealed class OpenRazerBackendTests
     }
 
     [Theory]
+    [InlineData(0x0271, 0x9F)]
+    [InlineData(0x0258, 0x1F)]
+    public void BlackWidowMiniBatteryRequestsUseTheMatchingWirelessOrWiredTransaction(
+        ushort productId, byte expectedTransaction)
+    {
+        var device = OpenRazerDeviceCatalog.BuiltIn.Find(0x1532, productId)!;
+        var requests = new[] { OpenRazerMouseProtocol.GetBattery(device), OpenRazerMouseProtocol.GetCharging(device) };
+        Assert.Equal(new byte[] { 0x80, 0x84 }, requests.Select(request => request.Report[8]).ToArray());
+        foreach (var request in requests)
+        {
+            Assert.Equal(expectedTransaction, request.Report[2]);
+            Assert.Equal(0x02, request.Report[6]);
+            Assert.Equal(0x07, request.Report[7]);
+            RazerFeatureReport.ValidatePreparedRequest(request.Report);
+        }
+    }
+
+    [Theory]
+    [InlineData(0x9F)]
+    [InlineData(0xFF)]
+    public void WirelessBlackWidowMiniKeepsTheDeclaredTransactionThroughTransport(byte declared)
+    {
+        var sequence = -1;
+        var path = @"\\?\hid#vid_1532&pid_0271&mi_03#test";
+        for (var index = 0; index < 34; index++)
+        {
+            Assert.Equal(declared, RazerFeatureTransport.ResolveTransactionId(path, declared, ref sequence));
+        }
+        Assert.Equal(-1, sequence);
+    }
+
+    [Theory]
+    [InlineData(@"\\?\hid#vid_1532&pid_00c1&mi_00#test")]
+    [InlineData(@"\\?\hid#vid_1532&pid_0258&mi_03#test")]
+    [InlineData(@"\\?\hid#vid_1234&pid_0271&mi_03#test")]
+    public void OtherDevicesKeepTheExistingTransactionSequence(string path)
+    {
+        var sequence = -1;
+        var actual = Enumerable.Range(0, 34)
+            .Select(_ => RazerFeatureTransport.ResolveTransactionId(path, 0x1F, ref sequence)).ToArray();
+        Assert.Equal(Enumerable.Range(0, 32).Concat([0, 1]).Select(value => (byte)value), actual);
+        Assert.Equal(0xFF, RazerFeatureTransport.ResolveTransactionId(path, 0xFF, ref sequence));
+        Assert.Equal(33, sequence);
+    }
+
+    [Theory]
     [InlineData(0x00DE, 0x00C0, "Razer Viper V3 Pro SE (Wired)")]
     [InlineData(0x00DF, 0x00C1, "Razer Viper V3 Pro SE (Wireless)")]
     public void ViperV3ProSeAliasesUseTheMatchingPollingProtocol(

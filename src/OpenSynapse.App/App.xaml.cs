@@ -306,10 +306,37 @@ public partial class App : Application
         }
     }
 
-    private static async Task RestoreLightingAfterChromaAsync(MainViewModel viewModel)
+    private Task RestoreLightingAfterChromaAsync(MainViewModel viewModel)
     {
-        await viewModel.RestoreBladeLightingAfterExternalAsync().ConfigureAwait(false);
-        await viewModel.RestoreOpenRazerLightingAfterExternalAsync().ConfigureAwait(false);
+        // REST sessions finish on background threads. Creating lighting editors and
+        // updating their bound properties must begin and continue on the UI thread.
+        var dispatcher = _window?.DispatcherQueue;
+        if (dispatcher is null || Volatile.Read(ref _closing) != 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!dispatcher.TryEnqueue(async () =>
+        {
+            try
+            {
+                if (Volatile.Read(ref _closing) == 0)
+                {
+                    await viewModel.RestoreBladeLightingAfterExternalAsync();
+                    await viewModel.RestoreOpenRazerLightingAfterExternalAsync();
+                }
+                completion.TrySetResult();
+            }
+            catch (Exception exception)
+            {
+                completion.TrySetException(exception);
+            }
+        }))
+        {
+            completion.TrySetException(new InvalidOperationException("Lighting restore could not enter the UI dispatcher."));
+        }
+        return completion.Task;
     }
 
     private Task GetShutdownTask(MainViewModel viewModel)

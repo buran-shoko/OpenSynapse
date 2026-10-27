@@ -162,13 +162,13 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged, I
 
         try
         {
-            await StopSoftwareLightingAsync(CancellationToken.None).ConfigureAwait(false);
+            await StopSoftwareLightingAsync(CancellationToken.None);
         }
         finally
         {
             if (_softwareLightingRuntime is not null)
             {
-                await _softwareLightingRuntime.DisposeAsync().ConfigureAwait(false);
+                await _softwareLightingRuntime.DisposeAsync();
             }
         }
     }

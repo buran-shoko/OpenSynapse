@@ -214,16 +214,26 @@ public sealed partial class MainViewModel
         var previous = SelectedOpenRazerDevice;
         if (previous is not null)
         {
-            await previous.DisposeAsync().ConfigureAwait(false);
+            // Selection and the subsequent property notifications belong to the UI
+            // context even when stopping an active software effect completes later.
+            await previous.DisposeAsync();
+        }
+        if (selectionToken.IsCancellationRequested)
+        {
+            return;
         }
         var selected = CreateOpenRazerDeviceViewModel(row.Connection);
         row.AttachDetail(selected);
         SelectedOpenRazerKraken = null;
         SelectedOpenRazerDevice = selected;
         await selected.LoadBasicStateAsync(selectionToken);
+        if (selectionToken.IsCancellationRequested) return;
         await selected.LoadSoundbarAsync(selectionToken);
+        if (selectionToken.IsCancellationRequested) return;
         await selected.LoadDpiStagesAsync(selectionToken);
+        if (selectionToken.IsCancellationRequested) return;
         await selected.ApplyConfiguredLightingAsync(selectionToken);
+        if (selectionToken.IsCancellationRequested) return;
         RefreshDeviceOverviewVisibility();
     }
 
@@ -253,8 +263,7 @@ public sealed partial class MainViewModel
 
             try
             {
-                await _openRazerDeviceService.EnsureDriverModeAsync(connection, cancellationToken)
-                    .ConfigureAwait(false);
+                await _openRazerDeviceService.EnsureDriverModeAsync(connection, cancellationToken);
                 _openRazerDriverModeChecked.Add(connection.InstanceId);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -289,7 +298,7 @@ public sealed partial class MainViewModel
             }
 
             await using var device = CreateOpenRazerDeviceViewModel(connection);
-            await device.ApplyConfiguredLightingAsync(cancellationToken).ConfigureAwait(false);
+            await device.ApplyConfiguredLightingAsync(cancellationToken);
         }
     }
 
@@ -392,7 +401,7 @@ public sealed partial class MainViewModel
         _openRazerSelectionCancellation = null;
         if (SelectedOpenRazerDevice is { } previous)
         {
-            await previous.DisposeAsync().ConfigureAwait(false);
+            await previous.DisposeAsync();
         }
         SelectedOpenRazerDevice = null;
         SelectedOpenRazerKraken = new OpenRazerKrakenViewModel(
@@ -411,7 +420,7 @@ public sealed partial class MainViewModel
         }
 
         // Discovery is event driven, so the list can still be empty right after a wake.
-        await RefreshDevicesAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshDevicesAsync(cancellationToken);
         var connection = SelectedOpenRazerDevice?.Connection;
         if (connection is null || !connection.IsReady)
         {
@@ -419,7 +428,7 @@ public sealed partial class MainViewModel
         }
 
         var scan = await _openRazerDeviceService
-            .ScanCommandSpaceAsync(connection, cancellationToken).ConfigureAwait(false);
+            .ScanCommandSpaceAsync(connection, cancellationToken);
         var directory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
             "OpenSynapse");
@@ -427,7 +436,7 @@ public sealed partial class MainViewModel
         var path = Path.Combine(
             directory,
             $"hid-scan-{connection.Definition.ProductId:X4}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
-        await File.WriteAllTextAsync(path, scan, cancellationToken).ConfigureAwait(false);
+        await File.WriteAllTextAsync(path, scan, cancellationToken);
         return path;
     }
 }

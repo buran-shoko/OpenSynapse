@@ -262,6 +262,22 @@ public sealed class RazerFeatureTransport : IRazerFeatureTransport
     internal static byte NextLeviathanTransactionId(ref int sequence) =>
         NextTransactionId(ref sequence);
 
+    internal static byte ResolveTransactionId(string devicePath, byte declared, ref int sequence)
+    {
+        // BlackWidow V3 Mini wireless uses fixed catalogue transactions: battery and
+        // charging GETs require 0x9F, as do its existing lighting commands. A rotating
+        // 0x00..0x1F id discards that device-specific value before it reaches the HID.
+        // Keep the middleware sequence used by other devices and the fixed 0xFF path.
+        if (declared == 0xFF ||
+            (DeviceIdParser.TryParse(devicePath, out var vendorId, out var productId) &&
+             vendorId == 0x1532 && productId == 0x0271))
+        {
+            return declared;
+        }
+
+        return NextTransactionId(ref sequence);
+    }
+
     private async Task<byte[]> ExecuteAsync(
         string devicePath,
         byte[] request,
@@ -284,12 +300,10 @@ public sealed class RazerFeatureTransport : IRazerFeatureTransport
                 request[2] = NextLeviathanTransactionId(ref sequence[0]);
                 responseReportId = LeviathanV2XProtocol.ReportId;
             }
-            else if (request[2] != 0xFF)
+            else
             {
-                // Match the middleware: every command gets a fresh transaction id.
-                // A fixed id lets a previous response pass for the current one.
                 var sequence = _transactionSequences.GetOrAdd(devicePath, static _ => [-1]);
-                request[2] = NextTransactionId(ref sequence[0]);
+                request[2] = ResolveTransactionId(devicePath, request[2], ref sequence[0]);
             }
 
             try

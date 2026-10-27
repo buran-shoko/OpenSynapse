@@ -3964,8 +3964,8 @@
       ],
       "waitMicroseconds": 4900,
       "transactions": {
-        "razer_chroma_misc_get_battery_level": "1F",
-        "razer_chroma_misc_get_charging_status": "1F",
+        "razer_chroma_misc_get_battery_level": "9F",
+        "razer_chroma_misc_get_charging_status": "9F",
         "razer_chroma_standard_get_serial": "FF",
         "razer_chroma_standard_get_firmware_version": "FF",
         "razer_chroma_standard_get_device_mode": "FF",

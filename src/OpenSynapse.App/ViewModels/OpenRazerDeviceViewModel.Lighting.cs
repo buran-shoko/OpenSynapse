@@ -258,7 +258,7 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
 
     private async Task DisableLightingAsync(CancellationToken cancellationToken)
     {
-        await StopSoftwareLightingAsync(cancellationToken).ConfigureAwait(false);
+        await StopSoftwareLightingAsync(cancellationToken);
         var zone = SelectedLightingZone;
         var capabilities = SelectedZoneCapabilities;
         if (capabilities?.CanWriteState == true && !_unsupportedLedStateWrites.Contains(zone))
@@ -310,7 +310,7 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
             {
                 if (IsSelectedLightingPowerActive)
                 {
-                    await StopSoftwareLightingAsync(cancellationToken).ConfigureAwait(false);
+                    await StopSoftwareLightingAsync(cancellationToken);
                     await _service.SetLightingAsync(Connection, new OpenRazerLightingSettings(
                         effect,
                         LightingSpeed,
@@ -338,7 +338,7 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
     {
         if (_softwareLightingRuntime is null || !SupportsSoftwareLighting || !LightingEnabled)
         {
-            await StopSoftwareLightingAsync(cancellationToken).ConfigureAwait(false);
+            await StopSoftwareLightingAsync(cancellationToken);
             return;
         }
 
@@ -349,14 +349,14 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
         {
             if (!IsSelectedLightingPowerActive)
             {
-                await SaveLightingProfileAsync(cancellationToken).ConfigureAwait(false);
+                await SaveLightingProfileAsync(cancellationToken);
                 return;
             }
-            await StopSoftwareLightingAsync(cancellationToken).ConfigureAwait(false);
+            await StopSoftwareLightingAsync(cancellationToken);
             if (effect == OpenRazerLightingEffect.SoftwareAudioMeter)
             {
                 _softwareAudioInput = new WasapiAudioMeterAdapter();
-                await _softwareAudioInput.StartAsync(cancellationToken).ConfigureAwait(false);
+                await _softwareAudioInput.StartAsync(cancellationToken);
             }
 
             _softwareLightingElapsed = TimeSpan.Zero;
@@ -397,9 +397,9 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
                 6,
                 22,
                 SoftwareLightingFrameInterval,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
 
-            await SaveLightingProfileAsync(cancellationToken).ConfigureAwait(false);
+            await SaveLightingProfileAsync(cancellationToken);
             ErrorText = string.Empty;
             _operationSucceeded = true;
             OnPropertyChanged(nameof(OperationStatusText));
@@ -445,11 +445,11 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
     {
         if (_softwareLightingRuntime is not null)
         {
-            await _softwareLightingRuntime.StopAsync(cancellationToken).ConfigureAwait(false);
+            await _softwareLightingRuntime.StopAsync(cancellationToken);
         }
         if (_softwareAudioInput is not null)
         {
-            await _softwareAudioInput.DisposeAsync().ConfigureAwait(false);
+            await _softwareAudioInput.DisposeAsync();
             _softwareAudioInput = null;
         }
     }
@@ -519,7 +519,7 @@ public sealed partial class OpenRazerDeviceViewModel : INotifyPropertyChanged
         if (Enum.TryParse<OpenRazerLightingEffect>(profile.Effect, true, out var effect) &&
             IsSoftwareLightingEffect(effect))
         {
-            await ApplySoftwareLightingAsync(effect, cancellationToken).ConfigureAwait(false);
+            await ApplySoftwareLightingAsync(effect, cancellationToken);
         }
         else if (Enum.TryParse<OpenRazerLightingEffect>(profile.Effect, true, out effect) &&
             Connection.LightingZones.TryGetValue(zone, out var capabilities) &&

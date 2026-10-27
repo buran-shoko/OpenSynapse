@@ -76,6 +76,14 @@ public sealed partial class MainWindow
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
+        // Background notifications must be dispatched before reading any XAML property,
+        // including the Visibility checks below.
+        if (!_dispatcherQueue.HasThreadAccess)
+        {
+            _dispatcherQueue.TryEnqueue(() => OnViewModelPropertyChanged(sender, args));
+            return;
+        }
+
         if (args.PropertyName == nameof(MainViewModel.InternalDisplayRefreshRates))
         {
             _dispatcherQueue.TryEnqueue(() =>
